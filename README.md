@@ -7,6 +7,7 @@ Reference implementation of the **Green Agent Benchmark** for evaluating languag
 - NLHE engine with blinds, side pots, duplicate HU replication, and 6-max seat balancing.
 - Agent-to-Agent (A2A) style interface with timeout, illegal-action, and governance penalties plus NDJSON telemetry.
 - Baseline agents (`Random`, `TAG`, `CFR-lite`) covering social/random, range-based, and solver-inspired behaviours.
+- LLM agents for GPT-5, DeepSeek, Gemini, Kimi, Qwen, Cohere, Doubao, and GLM.
 - Metrics pipeline computing `bb/100`, confidence intervals, match points, VPIP/PFR/AF/WTSD, timeout and illegal rates, and average decision speed directly from logs.
 - Config-driven runner with YAML schedules for dev/test style executions.
 - Command line interface and reusable Python API for integrating custom agents.
@@ -14,14 +15,27 @@ Reference implementation of the **Green Agent Benchmark** for evaluating languag
 ## Repository Layout
 
 ```
-green_agent_benchmark/
-  engine.py            # NLHE state machine and logging hooks
-  runner.py            # Series orchestration and replication logic
-  metrics.py           # Log aggregation for bb/100 and behaviour stats
-  agents/              # Baseline agent implementations
-  cli.py               # CLI entry point
-configs/               # Example HU and 6-max configuration files
-scripts/run_series.py  # Convenience launcher
+Project1_Texas/
+├── green_agent_benchmark/    # Core evaluation framework
+│   ├── engine.py            # NLHE game engine and state machine
+│   ├── runner.py            # Experiment coordination and replication logic
+│   ├── metrics.py           # Log aggregation and metric computation
+│   ├── agents/              # Baseline agent implementations (LLM + rule-based)
+│   ├── cli.py               # Command-line interface
+│   └── schemas.py           # Data structure definitions
+├── leaderboard/             # Web-based leaderboard system
+│   ├── leaderboard_generator.py  # Leaderboard data generation
+│   ├── server.py            # Web server
+│   └── index.html           # Frontend interface
+├── configs/                 # Experiment configuration files
+│   ├── dev_hu.yaml          # HU development config
+│   ├── dev_6max.yaml        # 6-max development config
+│   └── sixmax_llm_showdown.yaml  # LLM showdown config
+├── artifacts/               # Experiment results storage
+├── scripts/                 # Auxiliary scripts
+├── docs/                    # Technical documentation
+├── USAGE_GUIDE.md           # Complete usage guide
+└── QUICK_START.md           # Quick start guide
 ```
 
 ## Installation
@@ -87,12 +101,12 @@ To specify every seat directly (useful for six-player LLM showdowns), provide a
 
 ```yaml
 lineup:
+  - baseline:glm-6
   - baseline:gpt5-6
-  - baseline:deepseek-6
   - baseline:gemini-6
+  - baseline:deepseek-6
   - baseline:kimi-6
-  - baseline:qwen-6
-  - baseline:cohere-6
+  - baseline:doubao-6
 ```
 
 With a full lineup defined, `--agent` / `--agent-name` become optional.
@@ -137,10 +151,10 @@ Optional flags for `GPT5Agent`:
 Config files also accept a top-level `system_prompt_override` key; when present it
 overrides the system message for any OpenAI-compatible agents created from the lineup.
 
-### 4. Other LLM Providers (Gemini / DeepSeek / Kimi / Qwen / Cohere)
+### 4. Other LLM Providers (Gemini / DeepSeek / Kimi / Qwen / Cohere / Doubao / GLM)
 
 Agents for additional OpenAI-compatible providers are shipped under
-`green_agent_benchmark.agents.{gemini_agent,deepseek_agent,kimi_agent,qwen_agent,cohere_agent}`
+`green_agent_benchmark.agents.{gemini_agent,deepseek_agent,kimi_agent,qwen_agent,cohere_agent,doubao_agent,glm_agent}`
 and are available in the baseline registry as `*-hu` / `*-6` variants. Each
 agent reads its API configuration from environment variables:
 
@@ -149,6 +163,8 @@ agent reads its API configuration from environment variables:
 - Kimi: `KIMI_API_KEY`, optional `KIMI_MODEL`, `KIMI_API_BASE`
 - Qwen: `QWEN_API_KEY`, optional `QWEN_MODEL`, `QWEN_API_BASE`
 - Cohere: `COHERE_API_KEY`, optional `COHERE_MODEL`, `COHERE_API_BASE`
+- Doubao: `DOUBAO_API_KEY`, optional `DOUBAO_MODEL`, `DOUBAO_API_BASE`
+- GLM: `GLM_API_KEY`, optional `GLM_MODEL`, `GLM_API_BASE`
 
 Example HU showdown using Gemini vs GPT-5:
 
@@ -197,7 +213,7 @@ module paths); when provided, the CLI automatically instantiates every seat so
   contains separate entries (e.g. `"GPT5"`, `"DeepSeek"`) so you can compare both
   sides directly.
 
-- **6-max LLM showdown (GPT-5 + DeepSeek + Gemini + Kimi + Qwen + Cohere):**
+- **6-max LLM showdown (GLM + GPT-5 + Gemini + DeepSeek + Kimi + Doubao):**
 
   ```bash
   python -m green_agent_benchmark.cli \
